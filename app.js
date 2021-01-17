@@ -6,30 +6,38 @@ const prevAndNextContainer = document.querySelector('#prev-and-next-container')
 const api = 'https://api.lyrics.ovh'
 const corsAnyWhere = 'https://cors-anywhere.herokuapp.com'
 
+const fetchData = async url => {
+  const response = await fetch(url)
+  return await response.json()
+}
+
 const fetchSongs = async term => {
-  const response = await fetch(`${api}/suggest/${term}`)
-  const data = await response.json()
+  const data = await fetchData(`${api}/suggest/${term}`)
 
   insertSongsIntoPage(data);
 }
 
-const insertSongsIntoPage = songsInfo => {
-  songsContainerUL.innerHTML = songsInfo.data.map(song => `
-      <li class="song">
-        <span class="song-artist"><strong>${song.artist.name}</strong> - ${song.title}</span>
-        <button class="btn" data-artist="${song.artist.name}" data-song-title="${song.title}">Ver letra</button>
-      </li>
-    `).join('')
-
-  if(songsInfo.next || songsInfo.prev) {
+const addPrevAndNextButton = (prev, next) => {
+  if(next || prev) {
     prevAndNextContainer.innerHTML = `
-      ${songsInfo.prev ? `<button class="btn" onclick="getMoreSongs('${songsInfo.prev}')">Anterior</button>` : ''}
-      ${songsInfo.next ? `<button class="btn" onclick="getMoreSongs('${songsInfo.next}')">Próximo</button>` : ''}
+      ${prev ? `<button class="btn" onclick="getMoreSongs('${prev}')">Anterior</button>` : ''}
+      ${next ? `<button class="btn" onclick="getMoreSongs('${next}')">Próximo</button>` : ''}
     `
     return
   }
 
   prevAndNextContainer.innerHTML = '';
+}
+
+const insertSongsIntoPage = ({data, next, prev}) => {
+  songsContainerUL.innerHTML = data.map(({artist, title}) => `
+      <li class="song">
+        <span class="song-artist"><strong>${artist.name}</strong> - ${title}</span>
+        <button class="btn" data-artist="${artist.name}" data-song-title="${title}">Ver letra</button>
+      </li>
+    `).join('')
+
+    addPrevAndNextButton(prev, next);
 }
 
 songsContainerUL.addEventListener('click', event => {
@@ -46,8 +54,7 @@ songsContainerUL.addEventListener('click', event => {
 })
 
 const fetchLyrics = async (artist, song) => {
-  const response = await fetch(`${api}/v1/${artist}/${song}`)
-  const data = await response.json()
+  const data = await fetchData(`${api}/v1/${artist}/${song}`)
   const lyrics = data.lyrics.replace(/(\r\n|\r|\n)/g, '<br>')
 
   songsContainerUL.innerHTML = `
@@ -59,8 +66,7 @@ const fetchLyrics = async (artist, song) => {
 }
 
 const getMoreSongs = async url => {
-  const response = await fetch(`${corsAnyWhere}/${url}`);
-  const data = await response.json();
+  const data = await fetchData(`${corsAnyWhere}/${url}`)
 
   insertSongsIntoPage(data);
 }
